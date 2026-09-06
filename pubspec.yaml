@@ -1,0 +1,81 @@
+# Last full SDK + dependency audit - 06.09.2026
+name: metrica_base
+description: "Unified Yandex analytics and crash reporting for Flutter applications: AppMetrica on mobile, Yandex Metrica on the web"
+version: 0.0.1
+homepage: https://github.com/AlexSeednov/metrica_base
+# The following line prevents the package from being accidentally published to
+# pub.dev using `flutter pub publish`. This is preferred for private packages.
+# Publishable packages can't have 'git' dependencies and because of this
+# package depends on non-published application_base it can not be published
+publish_to: 'none' # Remove this line if you wish to publish to pub.dev
+
+environment:
+  # Flutter SDK supported versions
+  # Pinned packages
+  # https://github.com/flutter/flutter/blob/3.44.4/packages/flutter/pubspec.yaml
+  # https://github.com/flutter/flutter/blob/stable/CHANGELOG.md
+  flutter: '>=3.44.4'
+
+  # Dart SDK supported versions
+  # https://docs.flutter.dev/release/archive
+  # https://dart.googlesource.com/sdk/+/stable/CHANGELOG.md
+  sdk: '>=3.12.2'
+
+dependencies:
+  # All platform supported
+  application_base:
+    git:
+      url: https://github.com/AlexSeednov/application_base
+      tag_pattern: v{{version}}
+    version: ^0.3.7
+
+  # Not supported: Linux | macOS | Web | Windows
+  #
+  # Compiles everywhere (the Dart side is a plain platform channel), but only
+  # Android and iOS carry an SDK behind it — the services on top of it are
+  # registered in the mobile DI environment alone
+  appmetrica_plugin: ^4.0.0
+
+  # All platform supported
+  #
+  # Screen views are reported by a router observer
+  auto_route: ^11.1.0
+
+  # All platform supported
+  #
+  # Money amounts of the E-commerce reports
+  decimal: ^3.2.4
+
+  # Base SDK
+  flutter:
+    sdk: flutter
+
+  # All platform supported
+  injectable: ^3.0.0
+
+  # All platform supported
+  meta: ^1.16.0
+
+#
+dev_dependencies:
+  # dart run build_runner build
+  #
+  # 2.15.2+ requires analyzer 13.3+, which wants a newer `meta` than the one
+  # Flutter 3.44.4 pins to the SDK
+  build_runner: ^2.15.0
+
+  # Assertions in tests
+  checks: ^0.3.1
+
+  #
+  flutter_test:
+    sdk: flutter
+
+  # dart run build_runner build
+  injectable_generator: ^3.1.0
+
+# For information on the generic Dart part of this file, see the
+# following page: https://dart.dev/tools/pub/pubspec
+
+# The following section is specific to Flutter packages.
+flutter:
