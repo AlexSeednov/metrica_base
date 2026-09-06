@@ -1,0 +1,76 @@
+# Miscellaneous
+*.class
+*.log
+*.pyc
+*.swp
+.DS_Store
+.atom/
+.build/
+.buildlog/
+.history
+.svn/
+.swiftpm/
+migrate_working_dir/
+
+# IntelliJ related
+*.iml
+*.ipr
+*.iws
+.idea/
+
+# The .vscode folder contains launch configuration and tasks you configure in
+# VS Code which you may wish to be included in version control, so this line
+# is commented out by default.
+#.vscode/
+
+# Flutter/Dart/Pub related
+pubspec.lock
+**/doc/api/
+**/ios/Flutter/.last_build_id
+ios/build/.last_build_id
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.pub-cache/
+.pub/
+/build/
+.packages
+
+# MacOS related
+macos/Flutter/GeneratedPluginRegistrant.swift
+
+# Web related
+lib/generated_plugin_registrant.dart
+
+# Symbolication related
+app.*.symbols
+
+# Obfuscation related
+app.*.map.json
+
+# Android Studio will place build artifacts here
+/android/app/debug
+/android/app/profile
+/android/app/release
+
+# XCode temporary
+ios/Podfile.lock
+
+# Flavor temporary
+ios/firebase_app_id_file.json
+
+# Unsupported platforms
+linux
+macos
+windows
+
+# FVM Version Cache
+# .fvmrc is intentionally NOT ignored: it pins the Flutter version and must
+# be shared with everyone building the package.
+.fvm/
+
+# Dev tools
+devtools_options.yaml
+
+# Analyze files
+*.dot

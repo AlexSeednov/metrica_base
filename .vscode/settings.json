@@ -1,0 +1,15 @@
+{
+  "editor.formatOnSave": true,
+  "[xml]": {
+    "editor.formatOnSave": false
+  },
+  "editor.rulers": [
+    80
+  ],
+  "files.associations": {
+    "*.arb": "json"
+  },
+  "java.configuration.updateBuildConfiguration": "automatic",
+  "java.jdt.ls.vmargs": "-XX:+UseParallelGC -XX:GCTimeRatio=4 -XX:AdaptiveSizePolicyWeight=90 -Dsun.zip.disableMemoryMapping=true -Xmx2G -Xms100m -Xlog:disable",
+  "dart.flutterSdkPath": ".fvm/versions/3.44.4"
+}
