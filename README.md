@@ -24,6 +24,8 @@ For now includes:
   own billing
 * [Web specifics](#web-specifics) — cookie consent, ad blockers, page
   addresses
+* [Documentation](#documentation) — the dashboards guide and the
+  cookie-consent notes
 
 ## Supported platforms
 
@@ -265,3 +267,18 @@ not depend on the counter settings and survive a switch to the path strategy.
 **The counter script is attached from Dart**, not from `index.html`: the
 counter number depends on the flavor, while `index.html` is one for every
 build. Nothing has to be added to the page.
+
+## Documentation
+
+Longer guides live in `docs/`, in Russian — their audience is the product side
+of the applications on this stack:
+
+* [`docs/appmetrica_dashboards.md`](docs/appmetrica_dashboards.md) — the two
+  AppMetrica workspaces («Продукт», «Стабильность») every application on the
+  package starts from: what the package reports, the widget form, the base
+  widgets, funnels, segments, crash alerts, and what the dashboard cannot do.
+  A project documents only its own events and widgets on top of it.
+* [`docs/cookie_consent.md`](docs/cookie_consent.md) — the cookie-consent
+  gate of the web counter: why the law asks for it, how the gate works, and
+  what the application has to build around it (banner, storage, consent
+  version).

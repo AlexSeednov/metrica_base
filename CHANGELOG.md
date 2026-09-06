@@ -30,3 +30,8 @@
 
 * **`ErrorGroupUtility`** — one grouping rule for every platform, so the
   same failure lands in one record in AppMetrica and in Metrica alike.
+
+* **Docs** (`docs/`, in Russian): the AppMetrica dashboards guide, unified
+  across the applications on the package — the base widgets, funnels,
+  segments and alerts a project builds its own on top of — and the
+  cookie-consent notes for the web counter.
