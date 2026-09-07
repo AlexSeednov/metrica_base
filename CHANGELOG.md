@@ -1,3 +1,18 @@
+## 0.0.2
+
+* **`application_base` constraint widened to `>=0.3.7 <0.5.0`.** The caret
+  stopped at 0.4.0, so an application that had moved to the new minor line
+  could not resolve this package at all. Nothing here uses anything past
+  0.3.7, and both lines in use across the applications now resolve.
+
+* **Docs**: `docs/metrica_counter.md` — setting up the Yandex Metrica counter
+  of the web version: creating it, the settings that matter for a Flutter SPA
+  (the address filter and the subdomains, the hash tracking off, the Webvisor
+  off, the timezone and the currency matched with AppMetrica), the goals the
+  events of the registry need — a `reachGoal` without a goal declared
+  beforehand lands in no report, and goals are not counted retroactively —
+  and how to check that the data flows.
+
 ## 0.0.1
 
 * Initial release: the Yandex analytics and crash reporting integration
