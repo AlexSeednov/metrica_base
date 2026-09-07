@@ -24,8 +24,8 @@ For now includes:
   own billing
 * [Web specifics](#web-specifics) — cookie consent, ad blockers, page
   addresses
-* [Documentation](#documentation) — the dashboards guide and the
-  cookie-consent notes
+* [Documentation](#documentation) — the counter setup, the dashboards guide
+  and the cookie-consent notes
 
 ## Supported platforms
 
@@ -59,7 +59,7 @@ flutter pub get):
     git:
       url: https://github.com/AlexSeednov/metrica_base
       tag_pattern: v{{version}}
-    version: 0.0.1
+    version: 0.0.2
 ```
 
 The package registers its services through an injectable micro-package
@@ -125,8 +125,9 @@ the package's business, and a test hands a fake.
 * `logEvent(event)` — an event of the application's registry, see
   [Events registry](#events-registry). Goes out as an AppMetrica event with
   parameters on mobile and as a goal of the counter on the web (create a
-  JavaScript goal with the same identifier in the Metrica dashboard for every
-  event that matters there).
+  goal with the same identifier in the Metrica dashboard for every event that
+  matters there — a `reachGoal` without a goal behind it lands nowhere, see
+  [`docs/metrica_counter.md`](docs/metrica_counter.md)).
 * `setUser(userId)` — the user identity, a `String?`; `null` drops it on
   mobile (the web counter cannot drop one: the current visit is already bound,
   and the next visit stays anonymous anyway). An application with numeric
@@ -266,13 +267,23 @@ not depend on the counter settings and survive a switch to the path strategy.
 
 **The counter script is attached from Dart**, not from `index.html`: the
 counter number depends on the flavor, while `index.html` is one for every
-build. Nothing has to be added to the page.
+build. Nothing has to be added to the page — pasting the snippet of the
+dashboard on top of it raises a second counter without `defer` and doubles the
+first view, past the consent gate.
+
+**The counter itself** — creating it, the settings that matter for a Flutter
+SPA, and the goals the events of the registry need — is
+[`docs/metrica_counter.md`](docs/metrica_counter.md).
 
 ## Documentation
 
 Longer guides live in `docs/`, in Russian — their audience is the product side
 of the applications on this stack:
 
+* [`docs/metrica_counter.md`](docs/metrica_counter.md) — the Yandex Metrica
+  counter of the web version: how to create it, what to set in its settings,
+  which goals the events of the registry need (a `reachGoal` without a goal
+  declared beforehand lands nowhere), and how to check that the data flows.
 * [`docs/appmetrica_dashboards.md`](docs/appmetrica_dashboards.md) — the two
   AppMetrica workspaces («Продукт», «Стабильность») every application on the
   package starts from: what the package reports, the widget form, the base
