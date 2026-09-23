@@ -11,13 +11,13 @@ import 'package:metrica_base/domain/entity/error_analytics_event.dart';
 import 'package:metrica_base/domain/service/analytics_service.dart';
 import 'package:metrica_base/domain/service/crash_reporting_service.dart';
 
-/// Error reports for the web — on top of the Yandex Metrica counter.
+/// Error reports through the Yandex Metrica counter, registered for
+/// [PlatformEnvironment.web].
 ///
-/// Metrica has no crash reporting of its own, so errors go out as the
-/// service analytics event [ErrorAnalyticsEvent] — without stacks and the
-/// journal of recent events, but with the same grouping as the mobile reports.
-// Future(AlexSeednov): full crash reporting for the web (stacks, journal of
-// events) is a separate system; wire it once one is chosen.
+/// Metrica has no crash reporting, so errors go out as [ErrorAnalyticsEvent]:
+/// no stacks and no breadcrumbs, but the same grouping as on mobile.
+// Future(AlexSeednov): full crash reporting for the web (stacks, breadcrumbs)
+// is a separate system; wire it once one is chosen.
 @Environment(PlatformEnvironment.web)
 @LazySingleton(as: CrashReportingService)
 final class YandexMetricaCrashService
@@ -29,16 +29,15 @@ final class YandexMetricaCrashService
 
   // MARK: Const
 
-  /// Length cap of an error message: the parameters of an event are no place
-  /// for the full text with a stack
+  /// Length cap of a message: event parameters are no place for a full text
+  /// with a stack.
   static const int _messageLimit = 200;
 
-  /// Cap on the length of a group identifier — as in the mobile reports, so
-  /// the same error groups the same way on every platform
+  /// As on mobile, so the same error groups the same way on every platform.
   static const int _groupIdLimit = 100;
 
-  /// How many errors per session go into analytics: a looping frame build
-  /// error would otherwise spam the visit with hundreds of events
+  /// Errors sent per page load at most: an error thrown on every frame would
+  /// otherwise flood the visit with hundreds of events.
   static const int _reportsLimit = 30;
 
   ///
@@ -47,18 +46,17 @@ final class YandexMetricaCrashService
 
   // MARK: References
 
-  /// Errors go through the shared analytics service: the queue before the
-  /// counter activation and the guard against sending failures live in one
-  /// place
+  /// Errors go through the shared analytics service, so the queue before the
+  /// activation and the guard against sending failures live in one place.
   final AnalyticsService _analyticsService;
 
   // MARK: Data
 
-  /// A report is in flight: a failure of the sending itself the logger would
-  /// hand back here and loop the reports — nested calls are dropped
+  /// Set while a report is being sent. A failure of the sending goes to the
+  /// logger, which hands it back here: dropping nested calls breaks the loop.
   bool _isReporting = false;
 
-  /// How many errors went out this session
+  ///
   int _reportsCount = 0;
 
   // MARK: Base functions
@@ -66,14 +64,13 @@ final class YandexMetricaCrashService
   ///
   @override
   void prepare() {
-    /// The application logger hands handled errors over here. The journal of
-    /// events ([logInfoRemote]) is not subscribed: Metrica has no error
-    /// environment the mobile reports attach the journal to
+    /// The errors of the application logger only: Metrica has no error
+    /// environment to keep the breadcrumbs of [logInfoRemote] in
     logErrorRemote = _logError;
 
-    /// Framework errors on the web nobody intercepts (on mobile the AppMetrica
-    /// SDK does on activation) — the report goes out on top of the regular
-    /// handling, not instead of it
+    /// Nothing intercepts framework errors on the web (on mobile the SDK
+    /// does), so they are hooked here — on top of the regular handler, not
+    /// instead of it
     final FlutterExceptionHandler? previousOnError = FlutterError.onError;
     FlutterError.onError = (details) {
       unawaited(
@@ -82,7 +79,7 @@ final class YandexMetricaCrashService
       previousOnError?.call(details);
     };
 
-    /// Asynchronous errors outside the Flutter zone
+    /// Asynchronous errors outside the framework
     PlatformDispatcher.instance.onError = _onError;
 
     logNamedInfo(info: 'Prepared');
@@ -97,12 +94,11 @@ final class YandexMetricaCrashService
     /// which is already bound to the user through [AnalyticsService.setUser]
   }
 
-  /// A handled error from the application logger
+  /// A handled error from the application logger.
   Future<void> _logError({required String error, StackTrace? stack}) =>
       _reportError(message: error, isFatal: false);
 
-  /// An unhandled asynchronous error: counted as handled, otherwise Flutter
-  /// would bring the application down instead of letting the report out
+  /// An unhandled asynchronous error; `true` marks it handled.
   bool _onError(Object error, StackTrace stack) {
     /// Returning `true` mutes the regular `Unhandled exception` print in the
     /// console, so in debug the error is duplicated into the log by hand.
@@ -115,7 +111,7 @@ final class YandexMetricaCrashService
     return true;
   }
 
-  /// Send an error as the service analytics event
+  ///
   Future<void> _reportError({
     required String message,
     required bool isFatal,

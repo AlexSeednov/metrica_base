@@ -190,12 +190,20 @@ registry, if any, are the application's own.
 
 `AnalyticsNavigatorObserver` is an `AutoRouterObserver` that sends a
 `ScreenViewAnalyticsEvent` on every route change: push, replace, pop, tab
-switch and bottom sheet. Only named routes are reported, so anonymous system
-windows stay out. Add it to the observers of the router:
+switch and bottom sheet. Only named routes are reported, so anonymous windows
+— dialogs, menus, pickers — stay out. Closing one is not a view either: the
+screen under it stayed the current one all along. Add the observer to the
+router:
 
 ```dart
 navigatorObservers: () => [AnalyticsNavigatorObserver()],
 ```
+
+A tab counts from its first visit. A lazily built tab (the `AutoTabsRouter`
+default) reports that visit apart from the later switches, and the observer
+takes both. The tab a tabs router opens with gets no view of its own: the view
+of the route that hosts the tabs covers it, and on the web a second one would
+count the same page twice.
 
 On mobile a view is an ordinary event named `screen_view`. On the web it goes
 out as a page **hit** of the SPA rather than a goal: that is what gives
@@ -220,7 +228,9 @@ reach:
   every logger call has the same one;
 * a **journal** of the last 25 info messages of the logger, so a report shows
   what the user was doing. It is kept in the error environment ahead of time,
-  because a native crash never passes through Dart.
+  because a native crash never passes through Dart. The environment is
+  written at most every 5 seconds; a write the limit holds back is deferred to
+  the end of the interval, not skipped.
 
 On the **web** Metrica has no crash reporting, so errors go out as the service
 event `app_error`: without stacks and journal, but with the same grouping. At

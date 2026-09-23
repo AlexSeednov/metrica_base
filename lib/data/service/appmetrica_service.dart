@@ -9,9 +9,8 @@ import 'package:metrica_base/domain/entity/analytics_purchase.dart';
 import 'package:metrica_base/domain/entity/metrica_config.dart';
 import 'package:metrica_base/domain/service/analytics_service.dart';
 
-/// Analytics on top of Yandex AppMetrica — mobile platforms only; the web has
-/// a counter of its own, see the registration under
-/// [PlatformEnvironment.web].
+/// Analytics through Yandex AppMetrica, registered for
+/// [PlatformEnvironment.mobile]; the web has a counter of its own.
 @Environment(PlatformEnvironment.mobile)
 @LazySingleton(as: AnalyticsService)
 final class AppMetricaService with LoggingMixin implements AnalyticsService {
@@ -21,16 +20,23 @@ final class AppMetricaService with LoggingMixin implements AnalyticsService {
 
   // MARK: Const
 
-  /// Precision of money amounts: they arrive as doubles, and without rounding
-  /// Decimal carries junk like 1499.9999999999998 out
+  /// Amounts arrive as doubles: without rounding, Decimal would carry junk
+  /// like 1499.9999999999998.
   static const int _amountFractionDigits = 2;
 
-  /// Profile flag «did a key action» — for audience segmentation
+  /// Profile flag "did a key action", for audience segmentation.
   static const String _keyActionFlag = 'did_key_action';
 
   ///
   @override
   final String logName = 'AppMetrica';
+
+  // MARK: Data
+
+  /// Nothing reaches the SDK before a successful activation: without a key
+  /// or after a failed activation analytics stays off, with the reason
+  /// logged once by [init] instead of a failed call per report.
+  bool _isActivated = false;
 
   // MARK: Base functions
 
@@ -53,6 +59,7 @@ final class AppMetricaService with LoggingMixin implements AnalyticsService {
           sessionTimeout: config.sessionTimeoutSeconds,
         ),
       );
+      _isActivated = true;
       logNamedInfo(info: 'Activated');
     } catch (e) {
       logNamedError(error: 'Activation failed: $e');
@@ -88,9 +95,9 @@ final class AppMetricaService with LoggingMixin implements AnalyticsService {
   @override
   Future<void> reportCheckoutStarted(AnalyticsPurchase purchase) =>
       _guard(() async {
-        /// A free acquisition is no commerce: zero orders would distort the
-        /// average check and the conversion of the E-commerce reports. Those
-        /// are counted by the purchase event and the profile attributes
+        /// A free order is not commerce: zero orders would distort the
+        /// average check and the conversion of the E-commerce reports. The
+        /// purchase event and the profile attributes still count it
         if (purchase.isFree) return;
 
         await AppMetrica.reportECommerce(
@@ -112,10 +119,10 @@ final class AppMetricaService with LoggingMixin implements AnalyticsService {
       'is_free': purchase.isFree,
     });
 
-    /// The payment goes through the application's own billing, so the
-    /// purchase is sent as an E-commerce order rather than as Revenue:
-    /// AppMetrica expects Revenue from the stores and validates it by receipt
-    // Future(AlexSeednov): with In-App Purchase wired, send digital content
+    /// An E-commerce order rather than Revenue: the payment goes through the
+    /// application's own billing, while AppMetrica expects Revenue from the
+    /// stores and validates it by the receipt
+    // Future(AlexSeednov): once In-App Purchase is wired, send digital content
     // purchases through AppMetrica.reportRevenue(AppMetricaRevenue(...)) with
     // the store receipt (AppMetricaReceipt) — E-commerce does not fit those
     if (!purchase.isFree) {
@@ -124,7 +131,7 @@ final class AppMetricaService with LoggingMixin implements AnalyticsService {
       );
     }
 
-    /// Cumulative profile attributes: count and amount of purchases — over
+    /// Cumulative profile attributes: count and amount of the purchases, over
     /// all of them and over the paid ones alone
     await AppMetrica.reportUserProfile(
       AppMetricaUserProfile([
@@ -144,8 +151,7 @@ final class AppMetricaService with LoggingMixin implements AnalyticsService {
   @override
   Future<void> markKeyAction() => _guard(_reportKeyAction);
 
-  /// An order of a single product — there is no cart, a purchase is made
-  /// straight from the product card
+  /// A single-product order: there is no cart.
   AppMetricaECommerceOrder _order(AnalyticsPurchase purchase) =>
       AppMetricaECommerceOrder(
         identifier: purchase.orderId,
@@ -175,16 +181,18 @@ final class AppMetricaService with LoggingMixin implements AnalyticsService {
         ),
       );
 
-  /// The «did a key action» flag — for audience segmentation
+  ///
   Future<void> _reportKeyAction() => AppMetrica.reportUserProfile(
     AppMetricaUserProfile([
       AppMetricaBooleanAttribute.withValue(_keyActionFlag, true),
     ]),
   );
 
-  /// Analytics must never affect the business flow — failures are only
-  /// logged
+  /// Analytics must never affect the business flow: failures are only
+  /// logged.
   Future<void> _guard(Future<void> Function() action) async {
+    if (!_isActivated) return;
+
     try {
       await action();
     } catch (e) {

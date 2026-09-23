@@ -1,8 +1,7 @@
-/// Order contents for the E-commerce reports of analytics.
+/// Order contents for the E-commerce reports.
 ///
-/// One object, because the checkout start and the completed purchase have to
-/// go out with identical contents — otherwise the steps of the funnel do not
-/// link up.
+/// One object for the checkout start and the purchase: the funnel steps link
+/// up only when both carry identical contents.
 final class AnalyticsPurchase {
   ///
   const AnalyticsPurchase({
@@ -17,9 +16,8 @@ final class AnalyticsPurchase {
     this.paymentId,
   });
 
-  /// Order identifier shared by the checkout start and the purchase — this is
-  /// what analytics links the funnel steps by. The server-side payment
-  /// identifier would not do: it appears only after a successful payment.
+  /// Links the checkout start to the purchase in the funnel. Not the backend
+  /// payment id: that one appears only after a successful payment.
   final String orderId;
 
   ///
@@ -28,11 +26,11 @@ final class AnalyticsPurchase {
   ///
   final String productName;
 
-  /// Stable key of the product type — not a localized string, otherwise the
-  /// report breakdowns scatter across languages
+  /// Stable key of the product type, not a localized name: the report
+  /// breakdowns would split by language.
   final String category;
 
-  /// Total order amount, [quantity] included
+  /// For all of [quantity], not per unit.
   final double totalAmount;
 
   ///
@@ -41,17 +39,18 @@ final class AnalyticsPurchase {
   ///
   final bool isFree;
 
-  /// ISO 4217 currency code of the amounts (`RUB`, say)
+  /// ISO 4217 code of the amounts, e.g. `RUB`.
   final String currency;
 
-  /// Payment identifier on the backend — known only after the payment
+  /// Backend payment id; known only after the payment, see [withPayment].
   final int? paymentId;
 
-  /// Unit price: the order keeps it apart from the total
+  /// Price of one unit, which E-commerce reports take apart from the total.
+  /// A quantity below two counts as one.
   double get unitAmount => quantity > 1 ? totalAmount / quantity : totalAmount;
 
-  /// Complete the order with the identifier of the settled payment, keeping
-  /// [orderId] — otherwise the purchase would not link to the checkout start
+  /// The same order with the settled payment's id. [orderId] stays, so the
+  /// purchase links to the checkout start.
   AnalyticsPurchase withPayment(int? paymentId) => AnalyticsPurchase(
     orderId: orderId,
     productId: productId,

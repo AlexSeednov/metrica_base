@@ -1,32 +1,29 @@
-# Last full SDK + dependency audit - 06.09.2026
+# Last full audit of the SDK and dependencies: 06.09.2026
 name: metrica_base
 description: "Unified Yandex analytics and crash reporting for Flutter applications: AppMetrica on mobile, Yandex Metrica on the web"
 version: 0.0.3
 homepage: https://github.com/AlexSeednov/metrica_base
-# The following line prevents the package from being accidentally published to
-# pub.dev using `flutter pub publish`. This is preferred for private packages.
-# Publishable packages can't have 'git' dependencies and because of this
-# package depends on non-published application_base it can not be published
-publish_to: 'none' # Remove this line if you wish to publish to pub.dev
+# Not publishable: pub.dev rejects git dependencies, and application_base is
+# one.
+publish_to: 'none'
 
 environment:
-  # Flutter SDK supported versions
-  # Pinned packages
+  # Minimum Flutter SDK. The packages it pins:
   # https://github.com/flutter/flutter/blob/3.44.4/packages/flutter/pubspec.yaml
-  # https://github.com/flutter/flutter/blob/stable/CHANGELOG.md
+  # Release notes: https://github.com/flutter/flutter/blob/stable/CHANGELOG.md
   flutter: '>=3.44.4'
 
-  # Dart SDK supported versions
+  # Minimum Dart SDK. The one each Flutter release ships:
   # https://docs.flutter.dev/release/archive
-  # https://dart.googlesource.com/sdk/+/stable/CHANGELOG.md
+  # Release notes: https://dart.googlesource.com/sdk/+/stable/CHANGELOG.md
   sdk: '>=3.12.2'
 
 dependencies:
   # All platform supported
   #
   # A range rather than a caret: the package uses nothing newer than 0.3.7, so
-  # both minor lines in use across the applications are allowed and neither is
-  # forced to move for this one
+  # both minor lines in use across the applications resolve, and neither has
+  # to move for this package.
   application_base:
     git:
       url: https://github.com/AlexSeednov/application_base
@@ -36,8 +33,9 @@ dependencies:
   # Not supported: Linux | macOS | Web | Windows
   #
   # Compiles everywhere (the Dart side is a plain platform channel), but only
-  # Android and iOS carry an SDK behind it — the services on top of it are
-  # registered in the mobile DI environment alone
+  # Android and iOS carry an SDK behind it; the services on top of it are
+  # registered for the `mobile` DI environment, which takes every non-web
+  # platform.
   appmetrica_plugin: ^4.0.0
 
   # All platform supported
@@ -60,12 +58,11 @@ dependencies:
   # All platform supported
   meta: ^1.16.0
 
-#
 dev_dependencies:
   # dart run build_runner build
   #
-  # 2.15.2+ requires analyzer 13.3+, which wants a newer `meta` than the one
-  # Flutter 3.44.4 pins to the SDK
+  # Resolves below 2.15.2: that one requires analyzer 13.3+, which wants a
+  # newer `meta` than Flutter 3.44.4 pins.
   build_runner: ^2.15.0
 
   # Assertions in tests
@@ -78,8 +75,4 @@ dev_dependencies:
   # dart run build_runner build
   injectable_generator: ^3.1.0
 
-# For information on the generic Dart part of this file, see the
-# following page: https://dart.dev/tools/pub/pubspec
-
-# The following section is specific to Flutter packages.
 flutter:

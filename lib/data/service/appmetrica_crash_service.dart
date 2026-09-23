@@ -11,14 +11,13 @@ import 'package:metrica_base/core/const/platform_environment.dart';
 import 'package:metrica_base/core/utility/error_group_utility.dart';
 import 'package:metrica_base/domain/service/crash_reporting_service.dart';
 
-/// Crash and error reports on top of Yandex AppMetrica — mobile platforms
-/// only; the web has reports of its own, see the registration under
-/// [PlatformEnvironment.web].
+/// Crash and error reports through Yandex AppMetrica, registered for
+/// [PlatformEnvironment.mobile].
 ///
-/// Native crashes and unhandled Flutter errors the SDK intercepts itself on
-/// activation, so what is left here is what it cannot reach: asynchronous
-/// errors outside the Flutter zone, errors from the application logger, and
-/// the journal of recent events.
+/// The SDK intercepts native crashes and Flutter framework errors itself on
+/// activation. Left for this service is what it cannot reach: asynchronous
+/// errors outside the framework, the errors of the application logger, and
+/// the breadcrumbs — the recent log lines.
 @Environment(PlatformEnvironment.mobile)
 @LazySingleton(as: CrashReportingService)
 final class AppMetricaCrashService
@@ -30,33 +29,34 @@ final class AppMetricaCrashService
 
   // MARK: Const
 
-  /// How many recent journal messages are attached to a report.
+  /// How many breadcrumbs a report carries.
   ///
-  /// Every message takes an environment pair of its own, and AppMetrica
-  /// allows no more than 30 pairs per report — minus the user identity pair
-  /// and a small reserve.
+  /// Each takes an error environment pair of its own, and AppMetrica allows
+  /// 30 pairs per report: minus the user identity pair and a small reserve.
   static const int _breadcrumbsLimit = 25;
 
-  /// Journal key prefix: a zero-padded number keeps the chronological order
-  /// under the alphabetical key sorting of the dashboard
+  /// A breadcrumb key is this prefix and a zero-padded number, which keeps the
+  /// keys chronological under the dashboard's alphabetical sorting.
   static const String _breadcrumbKeyPrefix = 'log_';
 
-  /// Error environment key of the user identity
+  /// Error environment key of the user identity.
   static const String _userKey = 'user_id';
 
-  /// Length cap of one journal entry: the total environment budget of
-  /// AppMetrica is 4500 characters for keys and values together, and a pair
-  /// over the budget is silently dropped by the service as a whole
+  /// Length cap of a breadcrumb. The error environment holds 4500 characters
+  /// of keys and values in total and silently drops a pair that overflows
+  /// it: [_breadcrumbsLimit] full breadcrumbs with their keys stay under it,
+  /// with room left for the user id.
   static const int _crumbLimit = 160;
 
-  /// AppMetrica's cap on the length of a group identifier
+  /// AppMetrica's cap on the length of a group identifier.
   static const int _groupIdLimit = 100;
 
-  /// How often the journal is pushed into the error environment.
+  /// How often at most the breadcrumbs are written into the error
+  /// environment.
   ///
   /// A native crash never passes through Dart, so the environment is kept
-  /// fresh in advance — but every journal entry would mean a platform call,
-  /// hence the rate limit.
+  /// current in advance; writing on every log line would mean platform calls
+  /// on every log line, hence the rate limit.
   static const Duration _flushInterval = Duration(seconds: 5);
 
   ///
@@ -65,24 +65,26 @@ final class AppMetricaCrashService
 
   // MARK: Data
 
-  /// Journal of recent events: the tail is dropped as it fills up
+  /// Oldest first; the oldest drops out when the queue is full.
   final Queue<String> _breadcrumbs = Queue<String>();
 
-  /// Moment the journal last went into the error environment
+  ///
   DateTime? _lastFlush;
+
+  /// A write the rate limit held back, due at the end of the interval.
+  Timer? _deferredFlush;
 
   // MARK: Base functions
 
   ///
   @override
   void prepare() {
-    /// The application logger hands over everything it writes to the console
+    /// The application logger hands over what it writes, outside debug
     logInfoRemote = _logInfo;
     logErrorRemote = _logError;
 
-    /// Asynchronous errors outside the Flutter zone are the only thing the
-    /// SDK does not intercept itself: `FlutterError.onError` it takes over on
-    /// activation
+    /// The SDK takes over `FlutterError.onError` on activation; asynchronous
+    /// errors outside the framework are the one thing it leaves
     PlatformDispatcher.instance.onError = _onError;
 
     logNamedInfo(info: 'Prepared');
@@ -95,10 +97,9 @@ final class AppMetricaCrashService
   Future<void> setUser(String? userId) =>
       _guard(() => AppMetrica.putErrorEnvironmentValue(_userKey, userId));
 
-  /// Journal entry: goes out not at once but with the nearest report
+  /// A breadcrumb: stored now, sent with the next report.
   void _logInfo({required String information}) {
-    /// The head of an entry is worth more than its tail: the time and the
-    /// gist of the event come first
+    /// Cut from the end: the time and the gist come first
     final String crumb = '${_formatTime(DateTime.timestamp())} - $information';
     _breadcrumbs.addLast(
       crumb.length <= _crumbLimit
@@ -110,13 +111,13 @@ final class AppMetricaCrashService
     _flushEnvironment();
   }
 
-  /// A handled error from the application logger
+  /// A handled error from the application logger.
   Future<void> _logError({required String error, StackTrace? stack}) async {
     _flushEnvironment(isForced: true);
 
-    /// Without an explicit group AppMetrica glues errors by their stack, and
-    /// every logger call has the same one — the whole diagnostics of the
-    /// application would end up in a single record
+    /// Without an explicit group AppMetrica groups by stack, and every logger
+    /// call has the same one: all the application's errors would land in one
+    /// group
     await _guard(
       () => AppMetrica.reportErrorWithGroup(
         _groupId(error),
@@ -129,8 +130,7 @@ final class AppMetricaCrashService
     );
   }
 
-  /// An unhandled asynchronous error: counted as handled, otherwise Flutter
-  /// would bring the application down instead of letting the report out
+  /// An unhandled asynchronous error; `true` marks it handled.
   bool _onError(Object error, StackTrace stack) {
     /// Returning `true` mutes the regular `Unhandled exception` print in the
     /// console, so in debug the error is duplicated into the log by hand.
@@ -151,32 +151,49 @@ final class AppMetricaCrashService
     return true;
   }
 
-  /// A failure of the sending itself cannot go to the logger: the logger
-  /// hands errors back here, and an inactive SDK would turn into an endless
-  /// loop of reports
+  /// A failure of the sending itself stays out of the logger: the logger would
+  /// hand it back here, and an inactive SDK would loop the reports. Debug is
+  /// the exception — there the logger hands nothing over.
   Future<void> _guard(Future<void> Function() action) async {
     try {
       await action();
     } catch (e) {
-      if (isDebug) logNamedError(error: '$logName report failed: $e');
+      if (isDebug) logNamedError(error: 'Report failed: $e');
     }
   }
 
-  /// Push of the journal into the error environment
+  /// Writes the breadcrumbs into the error environment, at most once per
+  /// [_flushInterval] unless [isForced].
   void _flushEnvironment({bool isForced = false}) {
     final DateTime now = DateTime.timestamp();
     final DateTime? last = _lastFlush;
-    if (!isForced && last != null && now.difference(last) < _flushInterval) {
-      return;
+    if (!isForced && last != null) {
+      final Duration wait = _flushInterval - now.difference(last);
+
+      /// Deferred, not dropped: the lines right before a native crash are the
+      /// ones that explain it, and they are the ones a skipped write loses
+      if (wait > Duration.zero) {
+        _deferredFlush ??= Timer(wait, () {
+          _deferredFlush = null;
+          _flushEnvironment(isForced: true);
+        });
+        return;
+      }
     }
+    _deferredFlush?.cancel();
+    _deferredFlush = null;
     _lastFlush = now;
 
-    /// Every entry is a pair of its own: as one text the dashboard shows the
-    /// journal in a single line, collapsing the line breaks
+    /// A copy: the writes are asynchronous, and a line logged between two of
+    /// them would break the iteration over the live queue
+    final List<String> crumbs = _breadcrumbs.toList();
+
+    /// A pair per breadcrumb: as one text the dashboard would show them in a
+    /// single line, the line breaks collapsed
     unawaited(
       _guard(() async {
         int index = 0;
-        for (final String crumb in _breadcrumbs) {
+        for (final String crumb in crumbs) {
           index++;
           await AppMetrica.putErrorEnvironmentValue(
             '$_breadcrumbKeyPrefix${index.toString().padLeft(2, '0')}',
@@ -187,11 +204,11 @@ final class AppMetricaCrashService
     );
   }
 
-  /// Group identifier — the grouping shared by every platform
+  /// The grouping every platform shares.
   String _groupId(String error) =>
       ErrorGroupUtility.groupId(error, limit: _groupIdLimit);
 
-  /// Time stamp of a journal entry, `HH:mm:ss`
+  /// `HH:mm:ss` of a breadcrumb.
   static String _formatTime(DateTime time) {
     String two(int value) => value.toString().padLeft(2, '0');
 

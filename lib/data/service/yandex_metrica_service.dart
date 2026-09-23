@@ -14,12 +14,12 @@ import 'package:metrica_base/domain/entity/metrica_config.dart';
 import 'package:metrica_base/domain/entity/screen_view_analytics_event.dart';
 import 'package:metrica_base/domain/service/analytics_service.dart';
 
-/// Analytics on top of a Yandex Metrica counter — for the web, where
-/// AppMetrica has no SDK.
+/// Analytics through a Yandex Metrica counter, registered for
+/// [PlatformEnvironment.web], where AppMetrica has no SDK.
 ///
-/// Events go out as goals of the counter (JavaScript goals with the same
-/// identifiers are created in the Metrica dashboard for the events that
-/// matter), screen views — as page hits, purchases — as E-commerce records.
+/// Events go out as goals, screen views as page hits, purchases as
+/// E-commerce records. A goal reaches the reports only when the Metrica
+/// dashboard declares a JavaScript goal with the same identifier.
 @Environment(PlatformEnvironment.web)
 @LazySingleton(as: AnalyticsService)
 final class YandexMetricaService with LoggingMixin implements AnalyticsService {
@@ -29,15 +29,15 @@ final class YandexMetricaService with LoggingMixin implements AnalyticsService {
 
   // MARK: Const
 
-  /// How many reports pile up before the counter activates: the script loads
-  /// from the network, and the first events of the launch must not be lost
+  /// How many reports wait for the counter to activate: the script loads over
+  /// the network, and the first events of a launch must not be lost.
   static const int _pendingReportsLimit = 100;
 
-  /// Wait limit for the counter script: a blocked load the browser aborts
-  /// itself, the timeout only insures against a hung network
+  /// How long to wait for the counter script. A blocked load fails on its
+  /// own; this only guards against a hung network.
   static const Duration _activationTimeout = Duration(seconds: 15);
 
-  /// Profile flag «did a key action» — for audience segmentation
+  /// Profile flag "did a key action", for audience segmentation.
   static const String _keyActionFlag = 'did_key_action';
 
   ///
@@ -46,17 +46,18 @@ final class YandexMetricaService with LoggingMixin implements AnalyticsService {
 
   // MARK: Data
 
-  /// Number of the counter; `0` until [init] hands one over. Every report is
-  /// gated by [_isActivated], which is only ever `true` with a real number
+  /// `0` until [init] hands a number over. Every report is gated by
+  /// [_isActivated], which is only ever `true` with a real number.
   int _counterId = 0;
 
-  /// Outcome of the counter activation; `null` — the script is still loading
+  /// Outcome of the activation; `null` while it is pending — the script is
+  /// loading or the consent is not given yet.
   bool? _isActivated;
 
-  /// Reports piled up before the activation
+  /// Reports made before the activation, up to [_pendingReportsLimit].
   final List<void Function()> _pendingReports = [];
 
-  /// Consent gate the activation is waiting for, if any
+  /// Consent the activation is waiting for, if any.
   ValueListenable<bool>? _consent;
 
   // MARK: Base functions
@@ -72,11 +73,9 @@ final class YandexMetricaService with LoggingMixin implements AnalyticsService {
     }
     _counterId = counterId;
 
-    /// The counter sets cookies, so where a consent is required the script
-    /// is not loaded until the user gives it. The gate may flip at once —
-    /// a stored consent read on start-up — or later, from the banner; reports
-    /// made before the activation pile up in [_pendingReports], so a visit
-    /// that consents mid-session does not lose its first events
+    /// No script before the consent, see [MetricaConfig.webConsent]; reports
+    /// made meanwhile wait in [_pendingReports], so a visit that consents
+    /// mid-session keeps its first events
     final ValueListenable<bool>? consent = config.webConsent;
     if (consent == null || consent.value) {
       unawaited(_activate());
@@ -87,7 +86,7 @@ final class YandexMetricaService with LoggingMixin implements AnalyticsService {
     consent.addListener(_onConsentChanged);
   }
 
-  /// One-shot transition on consent: drop the subscription and activate
+  /// Activates once, on the first `true`.
   void _onConsentChanged() {
     final ValueListenable<bool>? consent = _consent;
     if (consent == null || !consent.value) return;
@@ -104,8 +103,8 @@ final class YandexMetricaService with LoggingMixin implements AnalyticsService {
           .loadCounterScript(_counterId)
           .timeout(_activationTimeout, onTimeout: () => false);
       if (!isLoaded) {
-        /// Ad blockers cut the counter off en masse — an expected
-        /// environment, not an application error
+        /// Ad blockers cut the counter off en masse: expected, not an
+        /// application error
         _finishActivation(isActivated: false);
         logNamedInfo(info: 'script is blocked or unreachable, skipped');
         return;
@@ -120,7 +119,7 @@ final class YandexMetricaService with LoggingMixin implements AnalyticsService {
     }
   }
 
-  /// Record the outcome of the activation and work off the queue
+  /// Sends the queued reports on success, drops them on failure.
   void _finishActivation({required bool isActivated}) {
     _isActivated = isActivated;
     if (isActivated) _pendingReports.forEach(_guard);
@@ -143,9 +142,8 @@ final class YandexMetricaService with LoggingMixin implements AnalyticsService {
   ///
   @override
   Future<void> logEvent(AnalyticsEventBase event) async {
-    /// A screen view is a page view of the SPA: hits give Metrica its
-    /// standard content reports and the parsing of ad tags, a goal here would
-    /// be noise
+    /// A screen view goes out as a page hit, see [ScreenViewAnalyticsEvent];
+    /// as a goal it would be noise
     if (event is ScreenViewAnalyticsEvent) {
       _reportScreenView(event);
       return;
@@ -154,8 +152,8 @@ final class YandexMetricaService with LoggingMixin implements AnalyticsService {
     await _report(() {
       metrica.reportGoal(_counterId, event.name, event.parameters);
 
-      /// Cumulative profile attributes, as in AppMetrica, Metrica has none —
-      /// a key action leaves only the flag
+      /// Metrica has no cumulative profile attributes: a key action sets the
+      /// flag only
       if (event.keyActionCounter != null) _assignKeyAction();
     });
   }
@@ -163,12 +161,12 @@ final class YandexMetricaService with LoggingMixin implements AnalyticsService {
   ///
   @override
   Future<void> reportCheckoutStarted(AnalyticsPurchase purchase) async {
-    /// A free acquisition is no commerce: zero orders would distort the
-    /// average check and the conversion of the E-commerce reports
+    /// A free order is not commerce: zero orders would distort the average
+    /// check and the conversion of the E-commerce reports
     if (purchase.isFree) return;
 
-    /// Metrica's E-commerce has no «checkout started» step of its own — the
-    /// nearest funnel step before a purchase is adding to the cart
+    /// Metrica's E-commerce has no "checkout started" step: the nearest one
+    /// before a purchase is adding to the cart
     await _report(
       () => metrica.pushEcommerce({
         'ecommerce': {
@@ -193,16 +191,15 @@ final class YandexMetricaService with LoggingMixin implements AnalyticsService {
       'is_free': purchase.isFree,
     });
 
-    /// A free acquisition stays out of E-commerce — see
-    /// [reportCheckoutStarted]
+    /// A free order stays out of E-commerce, see [reportCheckoutStarted]
     if (!purchase.isFree) {
       metrica.pushEcommerce({
         'ecommerce': {
           'currencyCode': purchase.currency,
           'purchase': {
-            /// There is nowhere to put the payment identifier for matching
-            /// against the backend — Metrica's E-commerce accepts no custom
-            /// order fields, the matching stays by the order identifier
+            /// Metrica's E-commerce takes no custom order fields, so there is
+            /// no room for the payment id: matching with the backend goes by
+            /// the order id
             'actionField': {
               'id': purchase.orderId,
               'revenue': purchase.totalAmount,
@@ -213,8 +210,8 @@ final class YandexMetricaService with LoggingMixin implements AnalyticsService {
       });
     }
 
-    /// Cumulative profile attributes (count and amount of purchases), as in
-    /// AppMetrica, Metrica has none — only the key action flag is left
+    /// Metrica has no cumulative profile attributes (the purchase count and
+    /// amount AppMetrica keeps): only the key action flag
     _assignKeyAction();
   });
 
@@ -222,13 +219,13 @@ final class YandexMetricaService with LoggingMixin implements AnalyticsService {
   @override
   Future<void> markKeyAction() => _report(_assignKeyAction);
 
-  /// The «did a key action» flag — for audience segmentation
+  ///
   void _assignKeyAction() =>
       metrica.assignUserParameters(_counterId, {_keyActionFlag: true});
 
   /// The router updates the address bar after notifying the navigation
   /// observers, so the address is read after the frame — otherwise the hit
-  /// would go out with the old URL
+  /// would go out with the old URL.
   void _reportScreenView(ScreenViewAnalyticsEvent event) =>
       SchedulerBinding.instance.addPostFrameCallback((_) {
         final String url = PageUrlUtility.pageUrl(metrica.currentPageUrl());
@@ -244,8 +241,7 @@ final class YandexMetricaService with LoggingMixin implements AnalyticsService {
         );
       });
 
-  /// Product of the order: there is no cart, a purchase is made straight
-  /// from the product card
+  /// The single product of an order: there is no cart.
   Map<String, Object> _product(AnalyticsPurchase purchase) => {
     'id': purchase.productId.toString(),
     'name': purchase.productName,
@@ -254,8 +250,8 @@ final class YandexMetricaService with LoggingMixin implements AnalyticsService {
     'quantity': purchase.quantity,
   };
 
-  /// Run a report with the state of the counter in mind: before the
-  /// activation — into the queue, after a failed activation — silently drop
+  /// Sends [report] once the counter is active: queued while the activation
+  /// is pending, dropped after it failed.
   Future<void> _report(void Function() report) async {
     switch (_isActivated) {
       case true:
@@ -269,8 +265,8 @@ final class YandexMetricaService with LoggingMixin implements AnalyticsService {
     }
   }
 
-  /// Analytics must never affect the business flow — failures are only
-  /// logged
+  /// Analytics must never affect the business flow: failures are only
+  /// logged.
   void _guard(void Function() report) {
     try {
       report();

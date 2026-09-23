@@ -1,8 +1,8 @@
-/// Platform bridge to the JavaScript counter of Yandex Metrica.
+/// Bridge to the JavaScript counter of Yandex Metrica.
 ///
-/// The real implementation exists in the web build alone (`dart:js_interop`),
-/// every other platform gets a stub — so the services on top of the bridge
-/// compile everywhere and the platform branching lives in one place.
+/// The real implementation is web-only (`dart:js_interop`), elsewhere a stub
+/// stands in: the services on top compile on every platform, and the
+/// platform branch lives in this one place.
 library;
 
 export 'yandex_metrica_bridge_stub.dart'
