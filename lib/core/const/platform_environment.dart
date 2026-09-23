@@ -8,7 +8,9 @@ import 'package:application_base/core/service/platform_service.dart';
 /// environment alone. The environment is chosen once, when DI is initialized:
 /// pass [current] to `getIt.init(environment: …)` of the application.
 abstract final class PlatformEnvironment {
-  /// Mobile platforms (Android, iOS)
+  /// Everything but the web. Named after Android and iOS, where AppMetrica
+  /// works; the desktop platforms land here too, and there the plugin has no
+  /// implementation — every call fails and is logged, nothing throws.
   static const String mobile = 'mobile';
 
   /// Web

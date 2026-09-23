@@ -1,7 +1,7 @@
 # Last full SDK + dependency audit - 06.09.2026
 name: metrica_base
 description: "Unified Yandex analytics and crash reporting for Flutter applications: AppMetrica on mobile, Yandex Metrica on the web"
-version: 0.0.2
+version: 0.0.3
 homepage: https://github.com/AlexSeednov/metrica_base
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.

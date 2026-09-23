@@ -1,3 +1,5 @@
+**English** | [Русский](README.ru.md)
+
 Unified Yandex analytics and crash reporting for Flutter applications based on
 [application_base package](https://github.com/AlexSeednov/application_base)
 with
@@ -33,8 +35,12 @@ For now includes:
 * iOS — AppMetrica SDK
 * Web — Yandex Metrica counter
 
-The services are registered per platform, so on any other platform there is
-simply no analytics: `getIt<AnalyticsService>()` is not registered there.
+The services are split by the kind of platform: the web gets the Metrica
+counter, everything else — AppMetrica. On Linux, macOS and Windows that means
+no analytics in effect: `appmetrica_plugin` has no implementation there, so the
+AppMetrica services are registered and resolve, but every call fails and is
+logged as an error instead of reaching a report. Nothing throws, so an
+application running there degrades rather than breaks.
 
 ## Requirements
 
@@ -54,12 +60,12 @@ Add a line like this to your package's pubspec.yaml (and run an implicit
 flutter pub get):
 
 ```yaml
-  # Not supported: Linux | MacOS | Windows
+  # Not supported: Linux | macOS | Windows
   metrica_base:
     git:
       url: https://github.com/AlexSeednov/metrica_base
       tag_pattern: v{{version}}
-    version: 0.0.2
+    version: 0.0.3
 ```
 
 The package registers its services through an injectable micro-package

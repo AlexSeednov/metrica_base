@@ -1,3 +1,20 @@
+## 0.0.3
+
+* **README in Russian** — `README.ru.md`, a full translation of `README.md`,
+  with a language switcher at the top of both. The English file stays the
+  source of truth, and every README change is made in both files at once; the
+  guides in `docs/` were written in Russian and stay single.
+
+* **README corrected on the desktop platforms.** It said the services are
+  not registered there; in fact everything that is not the web falls into the
+  `mobile` environment, so Linux, macOS and Windows get the AppMetrica
+  services, whose every call fails without a plugin implementation and is
+  logged as an error. The doc comment of `PlatformEnvironment.mobile` says the
+  same now.
+
+  Documentation only: nothing in the package's behaviour changes, and an
+  application has no reason to move to this version.
+
 ## 0.0.2
 
 * **`application_base` constraint widened to `>=0.3.7 <0.5.0`.** The caret
