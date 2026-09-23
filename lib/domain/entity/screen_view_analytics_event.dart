@@ -1,10 +1,11 @@
 import 'package:metrica_base/domain/entity/analytics_event_base.dart';
+import 'package:metrica_base/domain/enum/screen_view_type_enum.dart';
 
-/// A screen or a modal (bottom sheet) became visible.
+/// A screen or a bottom sheet became visible.
 ///
-/// Sent by `AnalyticsNavigatorObserver` on every route change. On the web it
-/// goes out as a page view of the SPA rather than a goal — that is what gives
-/// Metrica its standard content reports and lets it parse the ad tags.
+/// Sent by `AnalyticsNavigatorObserver` on route changes. On the web it goes
+/// out as a page view rather than a goal: page views feed Metrica's standard
+/// content reports and its parsing of the UTM tags.
 final class ScreenViewAnalyticsEvent extends AnalyticsEventBase {
   ///
   const ScreenViewAnalyticsEvent({
@@ -14,16 +15,17 @@ final class ScreenViewAnalyticsEvent extends AnalyticsEventBase {
     this.previousScreen,
   });
 
-  /// Name of the route — screen or sheet — that became visible
+  /// Route name, e.g. `ProductRoute`.
   final String screenName;
 
-  /// How exactly the screen became visible
-  final ScreenViewType type;
+  ///
+  final ScreenViewTypeEnum type;
 
-  /// Whether the route is a modal window (bottom sheet)
+  /// A bottom sheet rather than a screen.
   final bool isModal;
 
-  /// Name of the screen the user came from (for path analysis)
+  /// Route the user came from, for path analysis; left out of [parameters]
+  /// when unknown.
   final String? previousScreen;
 
   ///
@@ -40,23 +42,6 @@ final class ScreenViewAnalyticsEvent extends AnalyticsEventBase {
   };
 }
 
-/// Kind of transition that made a screen visible
-enum ScreenViewType {
-  /// Forward navigation onto a new screen
-  push('push'),
-
-  /// Return to the previous screen
-  pop('pop'),
-
-  /// Replacement of the current screen
-  replace('replace'),
-
-  /// Switch of a bottom navigation tab
-  tab('tab');
-
-  ///
-  const ScreenViewType(this.value);
-
-  /// Value for analytics (snake_case)
-  final String value;
-}
+/// The old name, kept for the applications that already use it.
+@Deprecated('Use ScreenViewTypeEnum')
+typedef ScreenViewType = ScreenViewTypeEnum;

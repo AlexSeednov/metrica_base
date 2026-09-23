@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:metrica_base/domain/entity/analytics_event_base.dart';
 import 'package:metrica_base/domain/entity/error_analytics_event.dart';
 import 'package:metrica_base/domain/entity/screen_view_analytics_event.dart';
+import 'package:metrica_base/domain/enum/screen_view_type_enum.dart';
 
 /// An application event with nothing but a name — the most common shape.
 final class _PlainEvent extends AnalyticsEventBase {
@@ -55,7 +56,7 @@ void main() {
     test('the previous screen is omitted when unknown', () {
       const ScreenViewAnalyticsEvent event = ScreenViewAnalyticsEvent(
         screenName: 'MainRoute',
-        type: ScreenViewType.push,
+        type: ScreenViewTypeEnum.push,
         isModal: false,
       );
 
@@ -71,7 +72,7 @@ void main() {
     test('the previous screen is reported when known', () {
       const ScreenViewAnalyticsEvent event = ScreenViewAnalyticsEvent(
         screenName: 'ProductRoute',
-        type: ScreenViewType.pop,
+        type: ScreenViewTypeEnum.pop,
         isModal: true,
         previousScreen: 'MainRoute',
       );

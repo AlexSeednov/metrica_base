@@ -1,10 +1,9 @@
-/// Error grouping for the external reporting systems — one rule for every
-/// platform, so the same failure is glued together the same way in AppMetrica
-/// and in Metrica.
+/// Error grouping shared by every platform, so the same failure groups the
+/// same way in AppMetrica and in Metrica.
 abstract final class ErrorGroupUtility {
-  /// Group identifier: the first line of the message with the numeric values
-  /// stripped — otherwise the same failure with different identifiers in its
-  /// text scatters into separate records.
+  /// The first line of [error] with every number replaced by `#`, cut to
+  /// [limit]: the same failure with different ids in its text must not
+  /// scatter into separate groups.
   static String groupId(String error, {required int limit}) {
     final String source = error
         .split('\n')

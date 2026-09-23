@@ -1,10 +1,9 @@
 import 'package:metrica_base/domain/entity/analytics_event_base.dart';
 
-/// An application error.
+/// An application error, as an analytics event.
 ///
-/// Service event of the web reporting: Metrica has no API of its own for
-/// errors, so they go out as an ordinary analytics event. Not used on mobile —
-/// there the crash reporting of the SDK takes the errors.
+/// Web only: Metrica has no error API, so errors go out as an ordinary event.
+/// On mobile the SDK's crash reporting takes them.
 final class ErrorAnalyticsEvent extends AnalyticsEventBase {
   ///
   const ErrorAnalyticsEvent({
@@ -13,13 +12,13 @@ final class ErrorAnalyticsEvent extends AnalyticsEventBase {
     required this.isFatal,
   });
 
-  /// Group identifier that glues the repeats of one error together
+  /// Groups the repeats of one error, see `ErrorGroupUtility`.
   final String group;
 
-  /// Error text — truncated, the parameter budget of an event is limited
+  /// Error text, truncated: the parameters of an event have a size budget.
   final String message;
 
-  /// Unhandled error, as opposed to one caught in the regular way
+  /// An unhandled error, as opposed to one the application logged.
   final bool isFatal;
 
   ///
