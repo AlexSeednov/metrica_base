@@ -15,6 +15,14 @@
   Documentation only: nothing in the package's behaviour changes, and an
   application has no reason to move to this version.
 
+* **README edited for readability, in both languages.** *Usage* goes in the
+  order an application follows (dependency, module and environment, `prepare`)
+  and names the two contracts; the long sentences of *Analytics*, *Crash
+  reporting*, *Purchases* and *Web specifics* are split so that each states
+  one thing, with the reasoning after the fact rather than inside it. The
+  Russian text is rewritten the same way, without the calques it had picked
+  up in translation.
+
 ## 0.0.2
 
 * **`application_base` constraint widened to `>=0.3.7 <0.5.0`.** The caret
