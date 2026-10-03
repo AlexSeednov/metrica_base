@@ -1,7 +1,7 @@
 # Last full audit of the SDK and dependencies: 06.09.2026
 name: metrica_base
 description: "Unified Yandex analytics and crash reporting for Flutter applications: AppMetrica on mobile, Yandex Metrica on the web"
-version: 0.0.3
+version: 0.0.4
 homepage: https://github.com/AlexSeednov/metrica_base
 # Not publishable: pub.dev rejects git dependencies, and application_base is
 # one.
@@ -22,13 +22,13 @@ dependencies:
   # All platform supported
   #
   # A range rather than a caret: the package uses nothing newer than 0.3.7, so
-  # both minor lines in use across the applications resolve, and neither has
-  # to move for this package.
+  # every minor line in use across the applications resolves, and none has to
+  # move for this package.
   application_base:
     git:
       url: https://github.com/AlexSeednov/application_base
       tag_pattern: v{{version}}
-    version: '>=0.3.7 <0.5.0'
+    version: '>=0.3.7 <0.6.0'
 
   # Not supported: Linux | macOS | Web | Windows
   #

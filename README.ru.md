@@ -63,7 +63,7 @@
     git:
       url: https://github.com/AlexSeednov/metrica_base
       tag_pattern: v{{version}}
-    version: 0.0.3
+    version: 0.0.4
 ```
 
 2. Подключите injectable-модуль пакета и передайте в `getIt.init` окружение
