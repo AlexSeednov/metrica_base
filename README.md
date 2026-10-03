@@ -64,7 +64,7 @@ for all release notes.
     git:
       url: https://github.com/AlexSeednov/metrica_base
       tag_pattern: v{{version}}
-    version: 0.0.3
+    version: 0.0.4
 ```
 
 2. Wire the package's injectable module and pass the platform environment to
